@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import MessageDeleteButton from "@/components/MessageDeleteButton";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -127,8 +128,10 @@ export default async function MessagesPage({
                 <th className="px-5 py-3 font-medium">时间</th>
                 <th className="px-5 py-3 font-medium">设备</th>
                 <th className="px-5 py-3 font-medium">类型</th>
-                <th className="px-5 py-3 font-medium">号码</th>
+                <th className="px-5 py-3 font-medium">发送号码</th>
+                <th className="px-5 py-3 font-medium">接收号码</th>
                 <th className="px-5 py-3 font-medium">内容</th>
+                <th className="px-5 py-3 font-medium">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -150,13 +153,19 @@ export default async function MessagesPage({
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
-                    {m.address}
+                    {m.type === "sent" ? `${m.device.name}（本机）` : m.address}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3 font-medium">
+                    {m.type === "sent" ? m.address : `${m.device.name}（本机）`}
                   </td>
                   <td
                     className="max-w-md truncate px-5 py-3 text-slate-600"
                     title={m.body}
                   >
                     {m.body}
+                  </td>
+                  <td className="px-5 py-3">
+                    <MessageDeleteButton id={m.id} />
                   </td>
                 </tr>
               ))}

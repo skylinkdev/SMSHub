@@ -66,7 +66,8 @@ export default async function DashboardPage() {
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
                 <th className="px-5 py-3 font-medium">时间</th>
                 <th className="px-5 py-3 font-medium">设备</th>
-                <th className="px-5 py-3 font-medium">号码</th>
+                <th className="px-5 py-3 font-medium">发送号码</th>
+                <th className="px-5 py-3 font-medium">接收号码</th>
                 <th className="px-5 py-3 font-medium">内容</th>
               </tr>
             </thead>
@@ -78,7 +79,10 @@ export default async function DashboardPage() {
                   </td>
                   <td className="px-5 py-3">{m.device.name}</td>
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
-                    {m.address}
+                    {m.type === "sent" ? "本机" : m.address}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3 font-medium">
+                    {m.type === "sent" ? m.address : "本机"}
                   </td>
                   <td className="max-w-md truncate px-5 py-3 text-slate-600" title={m.body}>
                     {m.body}
