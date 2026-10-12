@@ -6,16 +6,57 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.database.ContentObserver
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.provider.Telephony
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
- * 前台服务：保持进程存活，防止国产 ROM 冻结进程导致收不到短信广播。
- * 显示一条低优先级常驻通知。
+ * 前台服务：保持进程存活，并通过 ContentObserver 监听短信数据库变化。
+ * 广播被 ROM 拦截时，只要服务存活依然能捕获新短信。
  */
 class MonitorService : Service() {
 
+    private var observer: ContentObserver? = null
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForeground(NOTIFICATION_ID, buildNotification())
+        registerObserver()
+        // 服务（重启时补一次增量检查，防漏
+        CoroutineScope(Dispatchers.IO).launch { SmsCapture.check(applicationContext) }
+        return START_STICKY
+    }
+
+    private fun registerObserver() {
+        if (observer != null) return
+        val obs = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                CoroutineScope(Dispatchers.IO).launch {
+                    SmsCapture.check(applicationContext)
+                }
+            }
+        }
+        contentResolver.registerContentObserver(
+            Telephony.Sms.CONTENT_URI, true, obs
+        )
+        observer = obs
+        Prefs(this).log("短信数据库观察器已注册")
+    }
+
+    override fun onDestroy() {
+        observer?.let { contentResolver.unregisterContentObserver(it) }
+        observer = null
+        super.onDestroy()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    private fun buildNotification(): Notification {
         val channelId = "monitor"
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (nm.getNotificationChannel(channelId) == null) {
@@ -23,17 +64,13 @@ class MonitorService : Service() {
                 NotificationChannel(channelId, "短信监控", NotificationManager.IMPORTANCE_MIN)
             )
         }
-        val notification: Notification = Notification.Builder(this, channelId)
+        return Notification.Builder(this, channelId)
             .setContentTitle("SMSHub 运行中")
             .setContentText("正在监控新短信并同步到服务器")
             .setSmallIcon(R.drawable.ic_launcher)
             .setOngoing(true)
             .build()
-        startForeground(NOTIFICATION_ID, notification)
-        return START_STICKY
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
         private const val NOTIFICATION_ID = 1001

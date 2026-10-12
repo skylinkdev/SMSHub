@@ -23,6 +23,7 @@ class SmsReceiver : BroadcastReceiver() {
 
         // 借短信广播的豁免窗口拉起前台服务，保证监控持续在线
         MonitorService.start(context)
+        Prefs(context).log("收到短信广播（${parts.size} 段）")
 
         // 多段短信按发件人合并成一条
         val merged = parts

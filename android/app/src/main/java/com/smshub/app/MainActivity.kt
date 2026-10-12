@@ -118,6 +118,29 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
 
+        // 发送测试消息（验证上传链路）
+        findViewById<Button>(R.id.btnTest).setOnClickListener {
+            if (!saveUrl()) return@setOnClickListener
+            lifecycleScope.launch {
+                withContext(Dispatchers.IO) {
+                    ensureRegistered()
+                    if (prefs.isConfigured) {
+                        AppDatabase.get(this@MainActivity).dao().insertAll(
+                            listOf(
+                                PendingMessage(
+                                    address = "SMSHub",
+                                    body = "测试消息 ${timeFmt.format(Date())}",
+                                    date = System.currentTimeMillis()
+                                )
+                            )
+                        )
+                        UploadWorker.enqueue(this@MainActivity)
+                    }
+                }
+                Toast.makeText(this@MainActivity, "测试消息已加入队列", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // 待上传数量实时刷新
         lifecycleScope.launch {
             AppDatabase.get(this@MainActivity).dao().countFlow().collect { count ->
@@ -175,6 +198,9 @@ class MainActivity : AppCompatActivity() {
         ) == PackageManager.PERMISSION_GRANTED
         findViewById<TextView>(R.id.tvPermission).text =
             if (granted) "短信权限：已授予" else "短信权限：未授予（点击上方按钮申请）"
+        val logs = prefs.getLogs()
+        findViewById<TextView>(R.id.tvLog).text =
+            if (logs.isBlank()) "暂无日志" else logs
     }
 
     /** 读取收件箱最近 200 条写入队列，服务端按唯一键去重 */

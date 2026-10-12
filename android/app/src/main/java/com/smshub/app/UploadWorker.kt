@@ -34,6 +34,7 @@ class UploadWorker(
                 dao.deleteByIds(batch.map { it.id })
                 prefs.lastUploadAt = System.currentTimeMillis()
                 prefs.lastStatus = r.message
+                prefs.log("上传成功：${batch.size} 条")
                 // 队列里还有剩余则继续上传下一批
                 val remaining = dao.batch(1)
                 if (remaining.isNotEmpty()) enqueue(applicationContext)
@@ -41,11 +42,13 @@ class UploadWorker(
             }
             is ApiClient.Result.RetryableError -> {
                 prefs.lastStatus = r.message
+                prefs.log("上传失败（将重试）：${r.message}")
                 if (runAttemptCount < MAX_RETRY) Result.retry() else Result.success()
             }
             is ApiClient.Result.FatalError -> {
                 // 密钥错误等：丢弃重试，等待用户修正配置
                 prefs.lastStatus = r.message
+                prefs.log("上传失败（不重试）：${r.message}")
                 Result.success()
             }
         }

@@ -31,6 +31,23 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_REGISTERED_URL, "") ?: ""
         set(value) = sp.edit().putString(KEY_REGISTERED_URL, value).apply()
 
+    /** 已捕获的最新短信时间戳（ContentObserver 增量捕获用） */
+    var lastSmsDate: Long
+        get() = sp.getLong(KEY_LAST_SMS_DATE, 0L)
+        set(value) = sp.edit().putLong(KEY_LAST_SMS_DATE, value).apply()
+
+    /** 追加一条诊断日志（保留最近 30 条） */
+    fun log(event: String) {
+        val ts = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+            .format(java.util.Date())
+        val lines = (sp.getString(KEY_LOGS, "") ?: "").split("\n")
+            .filter { it.isNotBlank() }.toMutableList()
+        lines.add(0, "$ts $event")
+        sp.edit().putString(KEY_LOGS, lines.take(30).joinToString("\n")).apply()
+    }
+
+    fun getLogs(): String = sp.getString(KEY_LOGS, "") ?: ""
+
     /** 安装标识：首次读取时生成 UUID，重装清零 */
     val installId: String
         get() {
@@ -53,5 +70,7 @@ class Prefs(context: Context) {
         private const val KEY_REGISTERED_URL = "registered_url"
         private const val KEY_LAST_UPLOAD = "last_upload_at"
         private const val KEY_LAST_STATUS = "last_status"
+        private const val KEY_LAST_SMS_DATE = "last_sms_date"
+        private const val KEY_LOGS = "logs"
     }
 }
