@@ -27,6 +27,21 @@ object ApiClient {
         data class FatalError(val message: String) : Result()
     }
 
+    /** 自动注册设备：成功时 Success 的 message 为设备密钥 */
+    fun register(serverUrl: String, name: String, installId: String): Result {
+        val payload = JSONObject()
+            .put("name", name)
+            .put("installId", installId)
+            .toString()
+        val request = Request.Builder()
+            .url("$serverUrl/api/v1/devices/register")
+            .post(payload.toRequestBody(JSON))
+            .build()
+        return execute(request) { body ->
+            JSONObject(body).getString("deviceKey")
+        }
+    }
+
     /** 心跳 / 连接测试 */
     fun ping(serverUrl: String, deviceKey: String): Result {
         val request = Request.Builder()

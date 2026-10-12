@@ -3,6 +3,7 @@ package com.smshub.app
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.provider.Telephony
@@ -38,44 +39,47 @@ class MainActivity : AppCompatActivity() {
         prefs = Prefs(this)
 
         val etServerUrl = findViewById<TextInputEditText>(R.id.etServerUrl)
-        val etDeviceKey = findViewById<TextInputEditText>(R.id.etDeviceKey)
         val tvStatus = findViewById<TextView>(R.id.tvStatus)
         val tvPending = findViewById<TextView>(R.id.tvPending)
-        val tvPermission = findViewById<TextView>(R.id.tvPermission)
 
         etServerUrl.setText(prefs.serverUrl)
-        etDeviceKey.setText(prefs.deviceKey)
 
-        fun saveConfig(): Boolean {
+        fun saveUrl(): Boolean {
             prefs.serverUrl = etServerUrl.text?.toString().orEmpty()
-            prefs.deviceKey = etDeviceKey.text?.toString().orEmpty()
-            if (!prefs.isConfigured) {
-                Toast.makeText(this, "请填写服务器地址和设备密钥", Toast.LENGTH_SHORT).show()
+            if (prefs.serverUrl.isBlank()) {
+                Toast.makeText(this, "请填写服务器地址", Toast.LENGTH_SHORT).show()
                 return false
             }
             return true
         }
 
-        // 保存配置
+        // 保存配置（必要时自动注册设备）
         findViewById<Button>(R.id.btnSave).setOnClickListener {
-            if (saveConfig()) {
-                Toast.makeText(this, "配置已保存", Toast.LENGTH_SHORT).show()
+            if (!saveUrl()) return@setOnClickListener
+            tvStatus.text = "注册设备中…"
+            lifecycleScope.launch {
+                val msg = withContext(Dispatchers.IO) { ensureRegistered() }
+                tvStatus.text = msg
+                refreshDeviceInfo()
             }
         }
 
         // 测试连接
         findViewById<Button>(R.id.btnPing).setOnClickListener {
-            if (!saveConfig()) return@setOnClickListener
-            tvStatus.text = "测试中…"
+            if (!saveUrl()) return@setOnClickListener
+            tvStatus.text = "连接中…"
             lifecycleScope.launch {
-                val result = withContext(Dispatchers.IO) {
-                    ApiClient.ping(prefs.serverUrl, prefs.deviceKey)
+                val msg = withContext(Dispatchers.IO) {
+                    val reg = ensureRegistered()
+                    if (!prefs.isConfigured) return@withContext reg
+                    when (val r = ApiClient.ping(prefs.serverUrl, prefs.deviceKey)) {
+                        is ApiClient.Result.Success -> r.message
+                        is ApiClient.Result.RetryableError -> r.message
+                        is ApiClient.Result.FatalError -> r.message
+                    }
                 }
-                tvStatus.text = when (result) {
-                    is ApiClient.Result.Success -> result.message
-                    is ApiClient.Result.RetryableError -> result.message
-                    is ApiClient.Result.FatalError -> result.message
-                }
+                tvStatus.text = msg
+                refreshDeviceInfo()
             }
         }
 
@@ -86,10 +90,15 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        // 同步历史短信（最近 200 条收件箱）
+        // 同步历史短信（最近 200 条）
         findViewById<Button>(R.id.btnSyncHistory).setOnClickListener {
-            if (!saveConfig()) return@setOnClickListener
+            if (!saveUrl()) return@setOnClickListener
             lifecycleScope.launch {
+                withContext(Dispatchers.IO) { ensureRegistered() }
+                if (!prefs.isConfigured) {
+                    Toast.makeText(this@MainActivity, "设备注册失败，请检查服务器地址", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
                 val count = withContext(Dispatchers.IO) { syncHistory() }
                 Toast.makeText(
                     this@MainActivity,
@@ -112,13 +121,39 @@ class MainActivity : AppCompatActivity() {
         }
 
         refreshPermissionStatus()
+        refreshDeviceInfo()
         refreshStatus()
     }
 
     override fun onResume() {
         super.onResume()
         refreshPermissionStatus()
+        refreshDeviceInfo()
         refreshStatus()
+    }
+
+    /** 已注册且服务器未变更则跳过；否则自动注册并保存设备密钥 */
+    private fun ensureRegistered(): String {
+        if (prefs.isConfigured && prefs.registeredUrl == prefs.serverUrl) {
+            return "设备已注册：${prefs.deviceName}"
+        }
+        val model = "${Build.MANUFACTURER} ${Build.MODEL}"
+            .replaceFirstChar { it.uppercase(Locale.getDefault()) }
+        return when (val r = ApiClient.register(prefs.serverUrl, model, prefs.installId)) {
+            is ApiClient.Result.Success -> {
+                prefs.deviceKey = r.message
+                prefs.deviceName = model
+                prefs.registeredUrl = prefs.serverUrl
+                "设备注册成功：$model"
+            }
+            is ApiClient.Result.RetryableError -> "注册失败：${r.message}"
+            is ApiClient.Result.FatalError -> "注册失败：${r.message}"
+        }
+    }
+
+    private fun refreshDeviceInfo() {
+        findViewById<TextView>(R.id.tvDeviceInfo).text =
+            if (prefs.isConfigured) "设备：${prefs.deviceName}（已注册）" else "设备：未注册（保存配置后自动注册）"
     }
 
     private fun refreshStatus() {

@@ -22,12 +22,35 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_LAST_STATUS, "尚未上传") ?: "尚未上传"
         set(value) = sp.edit().putString(KEY_LAST_STATUS, value).apply()
 
+    var deviceName: String
+        get() = sp.getString(KEY_DEVICE_NAME, "") ?: ""
+        set(value) = sp.edit().putString(KEY_DEVICE_NAME, value).apply()
+
+    /** 已完成注册时对应的服务器地址，不一致则需要重新注册 */
+    var registeredUrl: String
+        get() = sp.getString(KEY_REGISTERED_URL, "") ?: ""
+        set(value) = sp.edit().putString(KEY_REGISTERED_URL, value).apply()
+
+    /** 安装标识：首次读取时生成 UUID，重装清零 */
+    val installId: String
+        get() {
+            var id = sp.getString(KEY_INSTALL_ID, null)
+            if (id.isNullOrBlank()) {
+                id = java.util.UUID.randomUUID().toString()
+                sp.edit().putString(KEY_INSTALL_ID, id).apply()
+            }
+            return id
+        }
+
     val isConfigured: Boolean
         get() = serverUrl.isNotBlank() && deviceKey.isNotBlank()
 
     companion object {
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_DEVICE_KEY = "device_key"
+        private const val KEY_DEVICE_NAME = "device_name"
+        private const val KEY_INSTALL_ID = "install_id"
+        private const val KEY_REGISTERED_URL = "registered_url"
         private const val KEY_LAST_UPLOAD = "last_upload_at"
         private const val KEY_LAST_STATUS = "last_status"
     }
