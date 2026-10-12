@@ -12,6 +12,7 @@ model Device {
   id         String    @id @default(cuid())
   name       String
   deviceKey  String    @unique
+  installId  String?   @unique // App 安装标识，重复注册时幂等返回原设备
   lastSeenAt DateTime?
   createdAt  DateTime  @default(now())
   messages   Message[]

@@ -25,3 +25,6 @@ android/.gradle/
 android/local.properties
 android/**/build/
 android/.idea/
+
+.vercel
+.env*
