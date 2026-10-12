@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 安卓设备：每台手机一个设备密钥（deviceKey），App 上报短信时用它鉴权
+model Device {
+  id         String    @id @default(cuid())
+  name       String
+  deviceKey  String    @unique
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+}
+
+// 短信记录：unique(deviceId, address, smsDate) 用于 App 重传时幂等去重
+model Message {
+  id        String   @id @default(cuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  address   String
+  body      String
+  type      String   @default("received") // received | sent
+  smsDate   DateTime // 短信在手机上的收发时间
+  createdAt DateTime @default(now())
+
+  @@unique([deviceId, address, smsDate], name: "device_address_date")
+  @@index([smsDate])
+}
