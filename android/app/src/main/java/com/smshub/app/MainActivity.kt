@@ -83,12 +83,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 申请短信权限
+        // 申请短信权限（同时申请通知权限用于前台服务）
         findViewById<Button>(R.id.btnPermission).setOnClickListener {
-            permissionLauncher.launch(
-                arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+            val perms = mutableListOf(
+                Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS
             )
+            if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
+            permissionLauncher.launch(perms.toTypedArray())
         }
+
+        // 打开 App 即启动前台监控服务
+        MonitorService.start(this)
 
         // 同步历史短信（最近 200 条）
         findViewById<Button>(R.id.btnSyncHistory).setOnClickListener {

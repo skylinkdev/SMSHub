@@ -21,6 +21,9 @@ class SmsReceiver : BroadcastReceiver() {
         val parts = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
         if (parts.isEmpty()) return
 
+        // 借短信广播的豁免窗口拉起前台服务，保证监控持续在线
+        MonitorService.start(context)
+
         // 多段短信按发件人合并成一条
         val merged = parts
             .groupBy { it.originatingAddress ?: "unknown" }

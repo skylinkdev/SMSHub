@@ -1,6 +1,5 @@
 import Sidebar from "@/components/Sidebar";
 import LogoutButton from "@/components/LogoutButton";
-import AutoRefresh from "@/components/AutoRefresh";
 
 export default function DashboardLayout({
   children,
@@ -19,7 +18,6 @@ export default function DashboardLayout({
         </header>
         <main className="flex-1 p-6">{children}</main>
       </div>
-      <AutoRefresh />
     </div>
   );
 }
