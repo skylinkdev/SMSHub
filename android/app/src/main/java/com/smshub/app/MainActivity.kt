@@ -120,6 +120,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
         }
 
+        // 读取最近一条短信（测试读取能力，不上传）
+        findViewById<Button>(R.id.btnReadLast).setOnClickListener {
+            showLastSms()
+        }
+
         // 发送测试消息（验证上传链路）
         findViewById<Button>(R.id.btnTest).setOnClickListener {
             if (!saveUrl()) return@setOnClickListener
@@ -182,6 +187,42 @@ class MainActivity : AppCompatActivity() {
         val logs = prefs.getLogs()
         findViewById<TextView>(R.id.tvLog).text =
             if (logs.isBlank()) "暂无日志" else logs
+    }
+
+    /** 读取并展示最近一条短信（仅本地展示，用于验证读取权限与能力） */
+    private fun showLastSms() {
+        val tv = findViewById<TextView>(R.id.tvLastSms)
+        tv.visibility = android.view.View.VISIBLE
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            tv.text = "未授予读取短信权限，请先点击「申请短信权限」"
+            return
+        }
+        contentResolver.query(
+            Telephony.Sms.Inbox.CONTENT_URI,
+            arrayOf(
+                Telephony.Sms.ADDRESS,
+                Telephony.Sms.BODY,
+                Telephony.Sms.DATE,
+                Telephony.Sms.TYPE
+            ),
+            null, null,
+            "${Telephony.Sms.DATE} DESC"
+        )?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val address = cursor.getString(0) ?: "unknown"
+                val body = cursor.getString(1) ?: ""
+                val date = cursor.getLong(2)
+                val type = if (cursor.getInt(3) == Telephony.Sms.MESSAGE_TYPE_SENT)
+                    "发件" else "收件"
+                tv.text = "最近一条（$type）\n号码：$address\n时间：${timeFmt.format(Date(date))}\n内容：${body.take(200)}"
+                prefs.log("读取最近一条短信成功：$address")
+                return
+            }
+        }
+        tv.text = "没有读到短信（收件箱为空或读取失败）"
+        prefs.log("读取最近一条短信：收件箱为空")
     }
 
     /** 读取收件箱最近 200 条写入队列，服务端按唯一键去重 */
