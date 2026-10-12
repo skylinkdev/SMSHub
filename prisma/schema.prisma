@@ -9,9 +9,10 @@ datasource db {
 
 // 安卓设备：以设备名（name）全局唯一标识，App 上报时按名自动创建
 model Device {
-  id         String    @id @default(cuid())
-  name       String    @unique
-  lastSeenAt DateTime?
+  id          String    @id @default(cuid())
+  name        String    @unique
+  phoneNumber String?   // 本机号码（App 上报，取不到为空）
+  lastSeenAt  DateTime?
   createdAt  DateTime  @default(now())
   messages   Message[]
   sendTasks  SendTask[]

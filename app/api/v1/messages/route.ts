@@ -23,7 +23,15 @@ export async function POST(req: Request) {
   if (!deviceName) {
     return NextResponse.json({ error: "device 不能为空" }, { status: 400 });
   }
+  const phone = String((payload as { phone?: unknown })?.phone ?? "").trim();
   const device = await getOrCreateDevice(deviceName);
+  // 上报本机号码（取不到时为空串，保持原值不变）
+  if (phone && phone !== device.phoneNumber) {
+    await prisma.device.update({
+      where: { id: device.id },
+      data: { phoneNumber: phone.slice(0, 32) },
+    });
+  }
 
   const list = Array.isArray(payload?.messages) ? payload.messages : [];
   if (list.length === 0) {

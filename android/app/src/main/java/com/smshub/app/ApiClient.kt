@@ -38,10 +38,10 @@ object ApiClient {
 
     private fun enc(value: String): String = URLEncoder.encode(value, "UTF-8")
 
-    /** 心跳 / 连接测试（同时让服务器按设备名自动创建设备） */
-    fun ping(serverUrl: String, name: String): Result {
+    /** 心跳 / 连接测试（同时让服务器按设备名自动创建设备，并上报本机号码） */
+    fun ping(serverUrl: String, name: String, phone: String): Result {
         val request = Request.Builder()
-            .url("$serverUrl/api/v1/ping?name=${enc(name)}")
+            .url("$serverUrl/api/v1/ping?name=${enc(name)}&phone=${enc(phone)}")
             .get()
             .build()
         return execute(request) { body ->
@@ -50,8 +50,8 @@ object ApiClient {
         }
     }
 
-    /** 批量上传短信 */
-    fun upload(serverUrl: String, deviceName: String, messages: List<PendingMessage>): Result {
+    /** 批量上传短信（附带本机号码，取不到为空串） */
+    fun upload(serverUrl: String, deviceName: String, phone: String, messages: List<PendingMessage>): Result {
         val arr = JSONArray()
         messages.forEach { m ->
             arr.put(
@@ -64,6 +64,7 @@ object ApiClient {
         }
         val payload = JSONObject()
             .put("device", deviceName)
+            .put("phone", phone)
             .put("messages", arr)
             .toString()
 

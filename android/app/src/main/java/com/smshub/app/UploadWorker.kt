@@ -29,7 +29,7 @@ class UploadWorker(
         val batch = dao.batch(BATCH_SIZE)
         if (batch.isEmpty()) return Result.success()
 
-        return when (val r = ApiClient.upload(prefs.serverUrl, Prefs.deviceName, batch)) {
+        return when (val r = ApiClient.upload(prefs.serverUrl, Prefs.deviceName, OwnNumber.get(applicationContext), batch)) {
             is ApiClient.Result.Success -> {
                 dao.deleteByIds(batch.map { it.id })
                 prefs.lastUploadAt = System.currentTimeMillis()

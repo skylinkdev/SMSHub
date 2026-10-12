@@ -1,4 +1,4 @@
-package com.smshub.app
+﻿package com.smshub.app
 
 import android.Manifest
 import android.content.Intent
@@ -59,7 +59,7 @@ class MainActivity : AppCompatActivity() {
             tvStatus.text = "验证服务器中…"
             lifecycleScope.launch {
                 val msg = withContext(Dispatchers.IO) {
-                    when (val r = ApiClient.ping(prefs.serverUrl, Prefs.deviceName)) {
+                    when (val r = ApiClient.ping(prefs.serverUrl, Prefs.deviceName, OwnNumber.get(this@MainActivity))) {
                         is ApiClient.Result.Success -> r.message
                         is ApiClient.Result.RetryableError -> r.message
                         is ApiClient.Result.FatalError -> r.message
@@ -76,7 +76,7 @@ class MainActivity : AppCompatActivity() {
             tvStatus.text = "连接中…"
             lifecycleScope.launch {
                 val msg = withContext(Dispatchers.IO) {
-                    when (val r = ApiClient.ping(prefs.serverUrl, Prefs.deviceName)) {
+                    when (val r = ApiClient.ping(prefs.serverUrl, Prefs.deviceName, OwnNumber.get(this@MainActivity))) {
                         is ApiClient.Result.Success -> r.message
                         is ApiClient.Result.RetryableError -> r.message
                         is ApiClient.Result.FatalError -> r.message
@@ -93,7 +93,8 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.RECEIVE_SMS,
                 Manifest.permission.READ_SMS,
                 Manifest.permission.SEND_SMS,
-                Manifest.permission.READ_PHONE_STATE
+                Manifest.permission.READ_PHONE_STATE,
+                Manifest.permission.READ_PHONE_NUMBERS
             )
             if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
             permissionLauncher.launch(perms.toTypedArray())

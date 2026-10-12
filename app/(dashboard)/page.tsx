@@ -21,7 +21,7 @@ export default async function DashboardPage() {
       prisma.message.findMany({
         orderBy: { smsDate: "desc" },
         take: 10,
-        include: { device: { select: { name: true } } },
+        include: { device: { select: { name: true, phoneNumber: true } } },
       }),
     ]);
 
@@ -79,10 +79,10 @@ export default async function DashboardPage() {
                   </td>
                   <td className="px-5 py-3">{m.device.name}</td>
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
-                    {m.type === "sent" ? "本机" : m.address}
+                    {m.type === "sent" ? m.device.phoneNumber || "本机" : m.address}
                   </td>
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
-                    {m.type === "sent" ? m.address : "本机"}
+                    {m.type === "sent" ? m.address : m.device.phoneNumber || "本机"}
                   </td>
                   <td className="max-w-md truncate px-5 py-3 text-slate-600" title={m.body}>
                     {m.body}

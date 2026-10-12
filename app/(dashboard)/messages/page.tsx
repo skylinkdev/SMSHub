@@ -45,7 +45,7 @@ export default async function MessagesPage({
       orderBy: { smsDate: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-      include: { device: { select: { name: true } } },
+      include: { device: { select: { name: true, phoneNumber: true } } },
     }),
   ]);
 
@@ -153,10 +153,14 @@ export default async function MessagesPage({
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
-                    {m.type === "sent" ? `${m.device.name}（本机）` : m.address}
+                    {m.type === "sent"
+                      ? m.device.phoneNumber || `${m.device.name}（本机）`
+                      : m.address}
                   </td>
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
-                    {m.type === "sent" ? m.address : `${m.device.name}（本机）`}
+                    {m.type === "sent"
+                      ? m.address
+                      : m.device.phoneNumber || `${m.device.name}（本机）`}
                   </td>
                   <td
                     className="max-w-md truncate px-5 py-3 text-slate-600"

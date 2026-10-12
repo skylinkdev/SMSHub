@@ -39,6 +39,7 @@ export default async function DevicesPage() {
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
                 <th className="px-5 py-3 font-medium">状态</th>
                 <th className="px-5 py-3 font-medium">设备名称</th>
+                <th className="px-5 py-3 font-medium">本机号码</th>
                 <th className="px-5 py-3 font-medium">短信数</th>
                 <th className="px-5 py-3 font-medium">最近在线</th>
                 <th className="px-5 py-3 font-medium">操作</th>
@@ -67,6 +68,9 @@ export default async function DevicesPage() {
                   </td>
                   <td className="px-5 py-3 font-medium text-slate-800">
                     {d.name}
+                  </td>
+                  <td className="px-5 py-3 text-slate-600">
+                    {d.phoneNumber || "-"}
                   </td>
                   <td className="px-5 py-3 text-slate-600">
                     {d._count.messages}
