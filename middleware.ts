@@ -6,9 +6,9 @@ const secret = new TextEncoder().encode(
   process.env.AUTH_SECRET || "dev-secret-change-me"
 );
 
-// 公开路径：App 上报接口（走设备密钥鉴权）、登录接口、登录页
+// 公开路径：App 上报接口（按设备名识别）、URL 通道、登录接口、登录页
 const PUBLIC_PREFIXES = ["/api/v1/", "/_next/", "/favicon.ico"];
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/add"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

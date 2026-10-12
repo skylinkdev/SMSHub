@@ -29,7 +29,7 @@ class UploadWorker(
         val batch = dao.batch(BATCH_SIZE)
         if (batch.isEmpty()) return Result.success()
 
-        return when (val r = ApiClient.upload(prefs.serverUrl, prefs.deviceKey, batch)) {
+        return when (val r = ApiClient.upload(prefs.serverUrl, Prefs.deviceName, batch)) {
             is ApiClient.Result.Success -> {
                 dao.deleteByIds(batch.map { it.id })
                 prefs.lastUploadAt = System.currentTimeMillis()
@@ -46,7 +46,7 @@ class UploadWorker(
                 if (runAttemptCount < MAX_RETRY) Result.retry() else Result.success()
             }
             is ApiClient.Result.FatalError -> {
-                // 密钥错误等：丢弃重试，等待用户修正配置
+                // 请求被拒绝等：丢弃重试，等待用户修正配置
                 prefs.lastStatus = r.message
                 prefs.log("上传失败（不重试）：${r.message}")
                 Result.success()

@@ -53,12 +53,18 @@ class MainActivity : AppCompatActivity() {
             return true
         }
 
-        // 保存配置（必要时自动注册设备）
+        // 保存配置（仅保存服务器地址，设备按名称自动识别）
         findViewById<Button>(R.id.btnSave).setOnClickListener {
             if (!saveUrl()) return@setOnClickListener
-            tvStatus.text = "注册设备中…"
+            tvStatus.text = "验证服务器中…"
             lifecycleScope.launch {
-                val msg = withContext(Dispatchers.IO) { ensureRegistered() }
+                val msg = withContext(Dispatchers.IO) {
+                    when (val r = ApiClient.ping(prefs.serverUrl, Prefs.deviceName)) {
+                        is ApiClient.Result.Success -> r.message
+                        is ApiClient.Result.RetryableError -> r.message
+                        is ApiClient.Result.FatalError -> r.message
+                    }
+                }
                 tvStatus.text = msg
                 refreshDeviceInfo()
             }
@@ -70,9 +76,7 @@ class MainActivity : AppCompatActivity() {
             tvStatus.text = "连接中…"
             lifecycleScope.launch {
                 val msg = withContext(Dispatchers.IO) {
-                    val reg = ensureRegistered()
-                    if (!prefs.isConfigured) return@withContext reg
-                    when (val r = ApiClient.ping(prefs.serverUrl, prefs.deviceKey)) {
+                    when (val r = ApiClient.ping(prefs.serverUrl, Prefs.deviceName)) {
                         is ApiClient.Result.Success -> r.message
                         is ApiClient.Result.RetryableError -> r.message
                         is ApiClient.Result.FatalError -> r.message
@@ -83,10 +87,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 申请短信权限（同时申请通知权限用于前台服务）
+        // 申请权限：收/读/发短信 + 电话状态（选卡发送）+ 通知（前台服务）
         findViewById<Button>(R.id.btnPermission).setOnClickListener {
             val perms = mutableListOf(
-                Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS
+                Manifest.permission.RECEIVE_SMS,
+                Manifest.permission.READ_SMS,
+                Manifest.permission.SEND_SMS,
+                Manifest.permission.READ_PHONE_STATE
             )
             if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
             permissionLauncher.launch(perms.toTypedArray())
@@ -99,11 +106,6 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.btnSyncHistory).setOnClickListener {
             if (!saveUrl()) return@setOnClickListener
             lifecycleScope.launch {
-                withContext(Dispatchers.IO) { ensureRegistered() }
-                if (!prefs.isConfigured) {
-                    Toast.makeText(this@MainActivity, "设备注册失败，请检查服务器地址", Toast.LENGTH_SHORT).show()
-                    return@launch
-                }
                 val count = withContext(Dispatchers.IO) { syncHistory() }
                 Toast.makeText(
                     this@MainActivity,
@@ -123,19 +125,16 @@ class MainActivity : AppCompatActivity() {
             if (!saveUrl()) return@setOnClickListener
             lifecycleScope.launch {
                 withContext(Dispatchers.IO) {
-                    ensureRegistered()
-                    if (prefs.isConfigured) {
-                        AppDatabase.get(this@MainActivity).dao().insertAll(
-                            listOf(
-                                PendingMessage(
-                                    address = "SMSHub",
-                                    body = "测试消息 ${timeFmt.format(Date())}",
-                                    date = System.currentTimeMillis()
-                                )
+                    AppDatabase.get(this@MainActivity).dao().insertAll(
+                        listOf(
+                            PendingMessage(
+                                address = "SMSHub",
+                                body = "测试消息 ${timeFmt.format(Date())}",
+                                date = System.currentTimeMillis()
                             )
                         )
-                        UploadWorker.enqueue(this@MainActivity)
-                    }
+                    )
+                    UploadWorker.enqueue(this@MainActivity)
                 }
                 Toast.makeText(this@MainActivity, "测试消息已加入队列", Toast.LENGTH_SHORT).show()
             }
@@ -160,28 +159,10 @@ class MainActivity : AppCompatActivity() {
         refreshStatus()
     }
 
-    /** 已注册且服务器未变更则跳过；否则自动注册并保存设备密钥 */
-    private fun ensureRegistered(): String {
-        if (prefs.isConfigured && prefs.registeredUrl == prefs.serverUrl) {
-            return "设备已注册：${prefs.deviceName}"
-        }
-        val model = "${Build.MANUFACTURER} ${Build.MODEL}"
-            .replaceFirstChar { it.uppercase(Locale.getDefault()) }
-        return when (val r = ApiClient.register(prefs.serverUrl, model, prefs.installId)) {
-            is ApiClient.Result.Success -> {
-                prefs.deviceKey = r.message
-                prefs.deviceName = model
-                prefs.registeredUrl = prefs.serverUrl
-                "设备注册成功：$model"
-            }
-            is ApiClient.Result.RetryableError -> "注册失败：${r.message}"
-            is ApiClient.Result.FatalError -> "注册失败：${r.message}"
-        }
-    }
-
     private fun refreshDeviceInfo() {
         findViewById<TextView>(R.id.tvDeviceInfo).text =
-            if (prefs.isConfigured) "设备：${prefs.deviceName}（已注册）" else "设备：未注册（保存配置后自动注册）"
+            if (prefs.isConfigured) "设备：${Prefs.deviceName}"
+            else "设备：${Prefs.deviceName}（填写服务器地址后自动上线）"
     }
 
     private fun refreshStatus() {

@@ -7,15 +7,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 安卓设备：每台手机一个设备密钥（deviceKey），App 上报短信时用它鉴权
+// 安卓设备：以设备名（name）全局唯一标识，App 上报时按名自动创建
 model Device {
   id         String    @id @default(cuid())
-  name       String
-  deviceKey  String    @unique
-  installId  String?   @unique // App 安装标识，重复注册时幂等返回原设备
+  name       String    @unique
   lastSeenAt DateTime?
   createdAt  DateTime  @default(now())
   messages   Message[]
+  sendTasks  SendTask[]
+}
+
+// 下行发送任务：Web/URL 创建，App 轮询执行并回执
+model SendTask {
+  id        String    @id @default(cuid())
+  deviceId  String
+  device    Device    @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  to        String
+  body      String
+  simSlot   Int?      // 1 | 2，null = 系统默认卡
+  status    String    @default("pending") // pending | sent | failed
+  error     String?
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  @@index([deviceId, status])
 }
 
 // 短信记录：unique(deviceId, address, smsDate) 用于 App 重传时幂等去重

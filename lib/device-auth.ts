@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/db";
 import type { Device } from "@prisma/client";
 
-// App 端鉴权：Authorization: Bearer <deviceKey>
-export async function authenticateDevice(req: Request): Promise<Device | null> {
-  const header = req.headers.get("authorization");
-  if (!header?.startsWith("Bearer ")) return null;
-  const key = header.slice(7).trim();
-  if (!key) return null;
-  return prisma.device.findUnique({ where: { deviceKey: key } });
+// 按设备名获取设备，不存在则自动创建（全平台仅用设备名识别设备）
+export async function getOrCreateDevice(name: string): Promise<Device> {
+  const trimmed = name.trim().slice(0, 64);
+  const existing = await prisma.device.findUnique({ where: { name: trimmed } });
+  if (existing) return existing;
+  return prisma.device.create({ data: { name: trimmed } });
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { authenticateDevice } from "@/lib/device-auth";
+import { getOrCreateDevice } from "@/lib/device-auth";
 
 type IncomingMessage = {
   address?: unknown;
@@ -9,19 +9,21 @@ type IncomingMessage = {
   type?: unknown; // "received" | "sent"
 };
 
-// App 批量上报短信。重复上报通过 unique(deviceId, address, smsDate) 幂等去重
+// App 批量上报短信：body {device: "设备名", messages: [...]}
+// 重复上报通过 unique(deviceId, address, smsDate) 幂等去重
 export async function POST(req: Request) {
-  const device = await authenticateDevice(req);
-  if (!device) {
-    return NextResponse.json({ error: "设备密钥无效" }, { status: 401 });
-  }
-
-  let payload: { messages?: IncomingMessage[] };
+  let payload: { device?: unknown; messages?: IncomingMessage[] };
   try {
     payload = await req.json();
   } catch {
     return NextResponse.json({ error: "请求体不是合法 JSON" }, { status: 400 });
   }
+
+  const deviceName = String(payload?.device ?? "").trim();
+  if (!deviceName) {
+    return NextResponse.json({ error: "device 不能为空" }, { status: 400 });
+  }
+  const device = await getOrCreateDevice(deviceName);
 
   const list = Array.isArray(payload?.messages) ? payload.messages : [];
   if (list.length === 0) {

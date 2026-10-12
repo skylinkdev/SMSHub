@@ -58,7 +58,7 @@ export default async function DashboardPage() {
         </div>
         {recent.length === 0 ? (
           <p className="px-5 py-10 text-center text-sm text-slate-400">
-            暂无短信。请先在「设备管理」创建设备，并在 App 中填入设备密钥。
+            暂无短信。在 App 中填入服务器地址保存后即可自动上报。
           </p>
         ) : (
           <table className="w-full text-sm">

@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import DeviceAddButton from "@/components/DeviceAddButton";
 import DeviceDeleteButton from "@/components/DeviceDeleteButton";
-import CopyButton from "@/components/CopyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +23,7 @@ export default async function DevicesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">
-          创建设备后，将设备密钥填入安卓 App 即可开始上报短信。
+          设备按名称识别：App 首次上报时会自动创建，也可以提前手动添加。
         </p>
         <DeviceAddButton />
       </div>
@@ -40,7 +39,6 @@ export default async function DevicesPage() {
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
                 <th className="px-5 py-3 font-medium">状态</th>
                 <th className="px-5 py-3 font-medium">设备名称</th>
-                <th className="px-5 py-3 font-medium">设备密钥</th>
                 <th className="px-5 py-3 font-medium">短信数</th>
                 <th className="px-5 py-3 font-medium">最近在线</th>
                 <th className="px-5 py-3 font-medium">操作</th>
@@ -69,14 +67,6 @@ export default async function DevicesPage() {
                   </td>
                   <td className="px-5 py-3 font-medium text-slate-800">
                     {d.name}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs text-slate-500">
-                        {d.deviceKey.slice(0, 8)}…{d.deviceKey.slice(-4)}
-                      </code>
-                      <CopyButton text={d.deviceKey} />
-                    </div>
                   </td>
                   <td className="px-5 py-3 text-slate-600">
                     {d._count.messages}
