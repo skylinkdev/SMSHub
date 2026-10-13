@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 /**
  * 前台服务：保持进程存活，并通过 ContentObserver 监听短信数据库变化。
  * 广播被 ROM 拦截时，只要服务存活依然能捕获新短信。
- * 同时每 10 分钟心跳一次，维持设备在线状态（在线判定窗口为 10 分钟）。
+ * 同时每 5 分钟心跳一次，维持设备在线状态（服务端离线阈值为 10 分钟）。
  */
 class MonitorService : Service() {
 
@@ -49,7 +49,7 @@ class MonitorService : Service() {
         registerObserver()
         // 服务（重启时补一次增量检查，防漏
         CoroutineScope(Dispatchers.IO).launch { SmsCapture.check(applicationContext) }
-        // 启动 10 分钟心跳
+        // 启动 5 分钟心跳
         handler.removeCallbacks(heartbeat)
         handler.post(heartbeat)
         return START_STICKY
@@ -98,7 +98,7 @@ class MonitorService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
-        private const val HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000L // 10 分钟
+        private const val HEARTBEAT_INTERVAL_MS = 5 * 60 * 1000L // 5 分钟
 
         fun start(context: Context) {
             try {
