@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.PrimaryKey
@@ -12,7 +13,11 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import kotlinx.coroutines.flow.Flow
 
-@Entity(tableName = "pending_messages")
+// unique(address, date, type)：广播与 ContentObserver 双通道捕获同一条短信时去重
+@Entity(
+    tableName = "pending_messages",
+    indices = [Index(value = ["address", "date", "type"], unique = true)]
+)
 data class PendingMessage(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val address: String,
@@ -25,7 +30,7 @@ data class PendingMessage(
 @Dao
 interface PendingMessageDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAll(messages: List<PendingMessage>)
 
     @Query("SELECT * FROM pending_messages ORDER BY id ASC LIMIT :limit")
@@ -38,7 +43,7 @@ interface PendingMessageDao {
     fun countFlow(): Flow<Int>
 }
 
-@Database(entities = [PendingMessage::class], version = 1, exportSchema = false)
+@Database(entities = [PendingMessage::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun dao(): PendingMessageDao
@@ -53,7 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "smshub.db"
-                ).build().also { instance = it }
+                ).fallbackToDestructiveMigration().build().also { instance = it }
             }
     }
 }
