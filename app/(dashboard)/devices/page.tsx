@@ -10,7 +10,7 @@ function fmt(d: Date | null) {
 }
 
 function isOnline(d: Date | null) {
-  return d != null && Date.now() - d.getTime() < 15 * 60 * 1000;
+  return d != null && Date.now() - d.getTime() < 10 * 60 * 1000;
 }
 
 export default async function DevicesPage() {
