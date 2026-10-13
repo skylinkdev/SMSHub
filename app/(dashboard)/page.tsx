@@ -10,7 +10,7 @@ function fmt(d: Date) {
 export default async function DashboardPage() {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
-  const onlineWindow = new Date(Date.now() - 10 * 60 * 1000);
+  const onlineWindow = new Date(Date.now() - 15 * 60 * 1000);
 
   const [deviceCount, onlineCount, messageCount, todayCount, recent] =
     await Promise.all([
