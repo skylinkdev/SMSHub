@@ -19,16 +19,39 @@ import kotlinx.coroutines.launch
 /**
  * 前台服务：保持进程存活，并通过 ContentObserver 监听短信数据库变化。
  * 广播被 ROM 拦截时，只要服务存活依然能捕获新短信。
+ * 同时每 10 分钟心跳一次，维持设备在线状态（在线判定窗口为 10 分钟）。
  */
 class MonitorService : Service() {
 
     private var observer: ContentObserver? = null
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val heartbeat = object : Runnable {
+        override fun run() {
+            CoroutineScope(Dispatchers.IO).launch {
+                val prefs = Prefs(applicationContext)
+                if (prefs.isConfigured) {
+                    val r = ApiClient.ping(
+                        prefs.serverUrl, Prefs.deviceName, OwnNumber.get(applicationContext)
+                    )
+                    if (r !is ApiClient.Result.Success) {
+                        prefs.log("心跳失败：${(r as? ApiClient.Result.RetryableError)?.message
+                            ?: (r as? ApiClient.Result.FatalError)?.message ?: "未知错误"}")
+                    }
+                }
+            }
+            handler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
         registerObserver()
         // 服务（重启时补一次增量检查，防漏
         CoroutineScope(Dispatchers.IO).launch { SmsCapture.check(applicationContext) }
+        // 启动 10 分钟心跳
+        handler.removeCallbacks(heartbeat)
+        handler.post(heartbeat)
         return START_STICKY
     }
 
@@ -51,6 +74,7 @@ class MonitorService : Service() {
     override fun onDestroy() {
         observer?.let { contentResolver.unregisterContentObserver(it) }
         observer = null
+        handler.removeCallbacks(heartbeat)
         super.onDestroy()
     }
 
@@ -74,6 +98,7 @@ class MonitorService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
+        private const val HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000L // 10 分钟
 
         fun start(context: Context) {
             try {
