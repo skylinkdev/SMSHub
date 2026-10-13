@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import MessageDeleteButton from "@/components/MessageDeleteButton";
+import MessageBody from "@/components/MessageBody";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -122,7 +123,8 @@ export default async function MessagesPage({
             没有符合条件的短信
           </p>
         ) : (
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[880px] text-sm">
             <thead>
               <tr className="border-b border-slate-100 text-left text-xs text-slate-400">
                 <th className="px-5 py-3 font-medium">时间</th>
@@ -162,19 +164,17 @@ export default async function MessagesPage({
                       ? m.address
                       : m.device.phoneNumber || `${m.device.name}（本机）`}
                   </td>
-                  <td
-                    className="max-w-md truncate px-5 py-3 text-slate-600"
-                    title={m.body}
-                  >
-                    {m.body}
+                  <td className="px-5 py-3 text-slate-600">
+                    <MessageBody body={m.body} />
                   </td>
-                  <td className="px-5 py-3">
+                  <td className="whitespace-nowrap px-5 py-3">
                     <MessageDeleteButton id={m.id} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         )}
 
         {/* 分页 */}
