@@ -57,6 +57,9 @@ export async function POST(req: Request) {
       address: address.slice(0, 64),
       body: body.slice(0, 4000),
       type: m?.type === "sent" ? "sent" : "received",
+      receiverNumber:
+        String((m as { receiver?: unknown })?.receiver ?? "").trim().slice(0, 32) ||
+        null,
       smsDate: date,
     });
   }

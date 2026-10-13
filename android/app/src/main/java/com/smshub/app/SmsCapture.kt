@@ -23,20 +23,29 @@ object SmsCapture {
 
         val list = mutableListOf<PendingMessage>()
         try {
+            // sub_id → 接收卡号码：双卡时标记每条短信实际收到哪张卡
+            val numberBySub = OwnNumber.bySubscription(context)
             context.contentResolver.query(
                 Telephony.Sms.Inbox.CONTENT_URI,
-                arrayOf(Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE),
+                arrayOf(
+                    Telephony.Sms.ADDRESS,
+                    Telephony.Sms.BODY,
+                    Telephony.Sms.DATE,
+                    Telephony.Sms.SUBSCRIPTION_ID
+                ),
                 "${Telephony.Sms.DATE} > ?",
                 arrayOf(watermark.toString()),
                 "${Telephony.Sms.DATE} ASC"
             )?.use { cursor ->
                 var count = 0
                 while (cursor.moveToNext() && count < 50) {
+                    val subId = if (cursor.isNull(3)) null else cursor.getInt(3)
                     list.add(
                         PendingMessage(
                             address = cursor.getString(0) ?: "unknown",
                             body = cursor.getString(1) ?: "",
-                            date = cursor.getLong(2)
+                            date = cursor.getLong(2),
+                            receiver = subId?.let { numberBySub[it] } ?: ""
                         )
                     )
                     count++

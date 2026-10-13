@@ -232,26 +232,30 @@ class MainActivity : AppCompatActivity() {
         ) return -1
 
         val list = mutableListOf<PendingMessage>()
+        val numberBySub = OwnNumber.bySubscription(this)
         contentResolver.query(
             Telephony.Sms.Inbox.CONTENT_URI,
             arrayOf(
                 Telephony.Sms.ADDRESS,
                 Telephony.Sms.BODY,
                 Telephony.Sms.DATE,
-                Telephony.Sms.TYPE
+                Telephony.Sms.TYPE,
+                Telephony.Sms.SUBSCRIPTION_ID
             ),
             null, null,
             "${Telephony.Sms.DATE} DESC"
         )?.use { cursor ->
             var count = 0
             while (cursor.moveToNext() && count < 200) {
+                val subId = if (cursor.isNull(4)) null else cursor.getInt(4)
                 list.add(
                     PendingMessage(
                         address = cursor.getString(0) ?: "unknown",
                         body = cursor.getString(1) ?: "",
                         date = cursor.getLong(2),
                         type = if (cursor.getInt(3) == Telephony.Sms.MESSAGE_TYPE_SENT)
-                            "sent" else "received"
+                            "sent" else "received",
+                        receiver = subId?.let { numberBySub[it] } ?: ""
                     )
                 )
                 count++

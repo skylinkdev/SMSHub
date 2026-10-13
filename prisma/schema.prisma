@@ -25,6 +25,7 @@ model Message {
   address   String
   body      String
   type      String   @default("received") // received | sent
+  receiverNumber String? // 接收卡号码（App 按 sub_id 解析上报，取不到为空）
   smsDate   DateTime // 短信在手机上的收发时间
   createdAt DateTime @default(now())
 

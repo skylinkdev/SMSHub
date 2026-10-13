@@ -24,6 +24,7 @@ data class PendingMessage(
     val body: String,
     val date: Long, // epoch 毫秒
     val type: String = "received",
+    val receiver: String = "", // 接收卡号码（按 sub_id 解析，取不到为空）
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -43,7 +44,7 @@ interface PendingMessageDao {
     fun countFlow(): Flow<Int>
 }
 
-@Database(entities = [PendingMessage::class], version = 2, exportSchema = false)
+@Database(entities = [PendingMessage::class], version = 3, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun dao(): PendingMessageDao

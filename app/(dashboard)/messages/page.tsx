@@ -162,7 +162,9 @@ export default async function MessagesPage({
                   <td className="whitespace-nowrap px-5 py-3 font-medium">
                     {m.type === "sent"
                       ? m.address
-                      : m.device.phoneNumber || `${m.device.name}（本机）`}
+                      : m.receiverNumber ||
+                        m.device.phoneNumber ||
+                        `${m.device.name}（本机）`}
                   </td>
                   <td className="px-5 py-3 text-slate-600">
                     <MessageBody body={m.body} />

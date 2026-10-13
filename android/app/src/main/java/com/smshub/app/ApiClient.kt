@@ -52,6 +52,7 @@ object ApiClient {
                     .put("body", m.body)
                     .put("date", m.date)
                     .put("type", m.type)
+                    .put("receiver", m.receiver)
             )
         }
         val payload = JSONObject()
