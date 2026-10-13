@@ -19,30 +19,16 @@ import kotlinx.coroutines.launch
 /**
  * 前台服务：保持进程存活，并通过 ContentObserver 监听短信数据库变化。
  * 广播被 ROM 拦截时，只要服务存活依然能捕获新短信。
- * 同时每 30 秒轮询一次下行发送任务（Web/URL 创建的短信由这里发出）。
  */
 class MonitorService : Service() {
 
     private var observer: ContentObserver? = null
-    private val handler = Handler(Looper.getMainLooper())
-
-    private val sendPoller = object : Runnable {
-        override fun run() {
-            CoroutineScope(Dispatchers.IO).launch {
-                SendManager.pollOnce(applicationContext)
-            }
-            handler.postDelayed(this, SEND_POLL_INTERVAL_MS)
-        }
-    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
         registerObserver()
         // 服务（重启时补一次增量检查，防漏
         CoroutineScope(Dispatchers.IO).launch { SmsCapture.check(applicationContext) }
-        // 启动下行发送轮询
-        handler.removeCallbacks(sendPoller)
-        handler.post(sendPoller)
         return START_STICKY
     }
 
@@ -65,7 +51,6 @@ class MonitorService : Service() {
     override fun onDestroy() {
         observer?.let { contentResolver.unregisterContentObserver(it) }
         observer = null
-        handler.removeCallbacks(sendPoller)
         super.onDestroy()
     }
 
@@ -89,7 +74,6 @@ class MonitorService : Service() {
 
     companion object {
         private const val NOTIFICATION_ID = 1001
-        private const val SEND_POLL_INTERVAL_MS = 30_000L
 
         fun start(context: Context) {
             try {

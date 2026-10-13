@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { href: "/", label: "仪表盘", icon: "▦" },
   { href: "/messages", label: "短信记录", icon: "✉" },
-  { href: "/send", label: "发送短信", icon: "↗" },
   { href: "/devices", label: "设备管理", icon: "▤" },
 ];
 

@@ -1,4 +1,4 @@
-﻿package com.smshub.app
+package com.smshub.app
 
 import android.Manifest
 import android.content.Intent
@@ -87,12 +87,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 申请权限：收/读/发短信 + 电话状态（选卡发送）+ 通知（前台服务）
+        // 申请权限：收/读短信 + 电话状态（读取本机号码）+ 通知（前台服务）
         findViewById<Button>(R.id.btnPermission).setOnClickListener {
             val perms = mutableListOf(
                 Manifest.permission.RECEIVE_SMS,
                 Manifest.permission.READ_SMS,
-                Manifest.permission.SEND_SMS,
                 Manifest.permission.READ_PHONE_STATE,
                 Manifest.permission.READ_PHONE_NUMBERS
             )
